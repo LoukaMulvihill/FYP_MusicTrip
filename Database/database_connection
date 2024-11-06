@@ -1,0 +1,79 @@
+
+#Following code is from this youtube video, https://www.youtube.com/watch?v=x72qfNCKi4s, and it connects the Kivy application to firebase database.
+
+#Imports necessary modules for the Kivy app and HTTP requests
+from kivy.app import App
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.button import Button
+import requests #Handles multiple requests; patch, get, post, put and delete
+import json #For handling JSON data formatting
+
+
+class KivyApp(App):
+    firebase_url = "https://fir-test-92bd8-default-rtdb.europe-west1.firebasedatabase.app/.json" #URL for the Firebase database
+    def build(self): #Builds the Interface
+        box_layout = BoxLayout()
+        box_layout.orientation = 'vertical' #Changes orientation to vertical
+        
+        #Initializes buttons and binds them to methods
+        button_patch = Button(text="Create Patch")
+        button_patch.bind(on_press=self.create_patch)
+        
+        button_get = Button(text="Get Data")
+        button_get.bind(on_press=self.create_get)
+        
+        button_post = Button(text="Post Data")
+        button_post.bind(on_press=self.create_post)
+        
+        button_put = Button(text="Put Data")
+        button_put.bind(on_press=self.create_put)
+        
+        button_delete = Button(text="Delete Data")
+        button_delete.bind(on_press=self.create_delete)
+        
+        #Add buttons to the layout
+        box_layout.add_widget(button_patch)
+        box_layout.add_widget(button_get)
+        box_layout.add_widget(button_post)
+        box_layout.add_widget(button_put)
+        box_layout.add_widget(button_delete)
+        return box_layout
+    
+    #Method for PATCH request: modifies specific data in Firebase
+    def create_patch(self, *args):
+        print("BUTTON PATCH CLICKED")
+        json_data = '{"url":"UCC.com", "age":"44 years old"}' #Specific text that needs to be patched
+        res = requests.patch(url=self.firebase_url, json=json.loads(json_data))
+        print(res)
+
+    #Method for GET request: retrieves data from Firebase
+    def create_get(self, *args):
+        print("BUTTON GET CLICKED")
+        res = requests.get(url=self.firebase_url)
+        print(res.json())
+
+    #Method for POST request: adds a new entry in Firebase
+    def create_post(self, *args):
+        print("BUTTON POST CLICKED")
+        json_data = '{"Table1":{"url":"nike.com", "age":"44 years old"}}' 
+        res = requests.post(url=self.firebase_url, json=json.loads(json_data))
+        print(res)
+
+    #Method for PUT request: replaces specific data in Firebase
+    def create_put(self, *args):
+        firebase_put_url = "https://fir-test-92bd8-default-rtdb.europe-west1.firebasedatabase.app/Table2/age.json"
+        print("BUTTON PUT CLICKED")
+        json_data = '{"age":"18 years old"}' 
+        res = requests.put(url=firebase_put_url, json=json.loads(json_data))
+        print(res)
+
+    #Method for DELETE request: deletes specific data from Firebase
+    def create_delete(self, *args):
+        print("BUTTON DELETE CLICKED")
+        delete_url = "https://fir-test-92bd8-default-rtdb.europe-west1.firebasedatabase.app/"
+        res = requests.delete(url=delete_url+"table2/url"+".json")
+        print(res.json)
+
+#Runs the app
+if __name__ == '__main__':
+    KivyApp().run()
