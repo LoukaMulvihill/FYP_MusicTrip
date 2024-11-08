@@ -47,7 +47,6 @@ def get_playlists():
     
     playlists = sp.current_user_playlists()
     playlists_info = [(pl['name'], pl['id']) for pl in playlists['items']]
-    #playlists_html = '<br>'.join([f'{name}: (ID: {playlist_id})' for name, playlist_id in playlists_info]) # this prints out the name, url and id of the playlists. Easier to read
     playlists_html = ''.join([
         f'<form action="/playlist_tracks" method="get" style="margin-bottom: 10px;">'
         f'<input type="hidden" name="playlist_id" value="{playlist_id}">'
@@ -73,15 +72,15 @@ def playlist_tracks():
     except Exception as e:
         return f"Error fetching playlist tracks: {e}", 400
     
-    artists = []                                                           # CHATGPT   Initializes an empty list, artists
-    for item in playlist_data[ 'items']:                                   # CHATGPT   Loops through each item in the 'items' list from 'playlist_data' which represents tracks
-        track = item['track']                                              # CHATGPT   Extracts the 'track' dictionary from each item, which contains info about the track
-        track_artists = [artists['name'] for artists in track ['artists']] # CHATGPT   Extracts the names of the artists for each track and stores them in a list, track_artists. Each 'track['artists']' entry is an artists involved in a  track
+    artists = []                                                           # CHATGPT   makes an empty list called artists
+    for item in playlist_data[ 'items']:                                   # CHATGPT   Loops through each item in the 'items' list from 'playlist_data' which represents tracks. 'Items' is an attribute given in the SpotifyAPI documentation
+        track = item['track']                                              # CHATGPT   Extracts the 'track' dictionary from each item, which contains info about the track. 'Track' is an attribute given in the SpotifyAPI documentation
+        track_artists = [artists['name'] for artists in track ['artists']] # CHATGPT   Extracts the names of the artists for each track and stores them in a list called track_artists. Each 'track['artists']' entry is an artists involved in a  track
         artists.extend(track_artists)                                      # CHATGPT   Extends the artists list with the names of the artists in track_artists
                                                                            # CHATGPT
-    unique_artists = set(artists)                                          # CHATGPT   Convert 'artists' to a det, 'unique_artists', as sets do not allow duplicate entries
-    artists_html = '<br>'.join(unique_artists)                             # CHATGPT   HTML formatting
-
+    unique_artists = set(artists)                                          # CHATGPT   Convert 'artists' to a set, 'unique_artists', as sets do not allow duplicate entries
+    artists_html = '<br>'.join(unique_artists)                             # CHATGPT   Formatting
+    
     return f"<h3> Artists in Playlist (ID: {playlist_id}):</h3><br>{artists_html}" 
 
 @app.route('/logout')
