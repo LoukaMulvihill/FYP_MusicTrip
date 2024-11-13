@@ -2,6 +2,8 @@
 #Most code here is from https://www.youtube.com/watch?v=2if5xSaZJlg
 import os
 
+print("Current Working Directory:", os.getcwd())
+
 from flask import Flask, request, redirect, session, url_for #Imports flask library. Also imports the session. The session is the instance of the server that will store data while the user is using the app
 
 from spotipy import Spotify #These three are imports to set up authorisation
