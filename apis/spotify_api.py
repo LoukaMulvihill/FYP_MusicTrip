@@ -4,7 +4,10 @@ from spotipy.oauth2 import SpotifyOAuth
 from config.config import Config
 from spotipy.cache_handler import FlaskSessionCacheHandler
 
+#class spotify_blueprint():
 spotify_blueprint = Blueprint('spotify', __name__)
+#print("spotify_blueprint type:", type(spotify_blueprint)) 
+#print("spotify_blueprint attributes:", dir(spotify_blueprint))
 
 cache_handler = FlaskSessionCacheHandler(session)
 sp_oauth = SpotifyOAuth(
@@ -12,6 +15,7 @@ sp_oauth = SpotifyOAuth(
     client_secret=Config.spotify_client_secret,
     redirect_uri=Config.redirect_uri,
     scope=Config.spotify_scope,
+#    spotipy_redirect_uri = Config.spotipy_redirect_uri,
     cache_handler=cache_handler,
     show_dialog=True
 ) #This is the authentication manager, essentially how we will authenticate with the Spotify webAPI
