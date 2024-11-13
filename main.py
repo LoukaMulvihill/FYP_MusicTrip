@@ -53,7 +53,7 @@ def get_playlists():
         f'<button type="submit">{name}</button>'
         f'</form>'
         for name, playlist_id in playlists_info
-    ])
+    ]) #Calls current_user_playlist from the spotify API. Gets 'name' and 'id' of each song. Creates a the layout with the 'name' as visible text and the 'id' as the idenitifer the system will use
 
     return f"<h3> Your Playlists</h3>{playlists_html}"
 
