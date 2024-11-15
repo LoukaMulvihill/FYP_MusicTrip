@@ -18,6 +18,10 @@ redirect_uri = 'http://localhost:5000/callback'
 spotify_scope = 'playlist-read-private'#This was gotten from a list of available scopes on the Spotify Documentation webpage, this specific scope gives access to read the users private playlists
 ticketmaster_consumer_key = '8kN3GmP1POuzUiGv2LrzBByA9dPGuom2'
 ticketmaster_consumer_secret = '6ZEAtoBunKhyZmZa'
+eventbrite_API_key = 'H464SLKPHWW6RPRVZT'
+eventbrite_client_secret = 'S44M2F4IH3FVI35WPKTM7VZ2VVMHA7ZDAARYAUU45HGSMZQR43'
+eventbrite_private_token = 'GZB6BO6M2OPBM2SZBBYC'
+eventbrite_public_token = 'WA7SGX6ZADW3F7N6RYOW'
 
 cache_handler = FlaskSessionCacheHandler(session)
 sp_oauth = SpotifyOAuth(
@@ -46,25 +50,94 @@ def search_ticketmaster_events(artist_name):
         data = response.json()
         if '_embedded' in data and 'events' in data['_embedded']:
             for event in data['_embedded']['events']:
-                # Safely retrieve the venue name, date, and other details with error handling
+                # Safely retrieve event details
                 event_name = event.get('name', 'Event name not available')
                 event_date = event['dates']['start'].get('localDate', 'Date not available')
-                
+
+                # Venue details
                 venue_name = 'Venue not available'
+                city = 'City not available'
+                country = 'Country not available'
                 if '_embedded' in event and 'venues' in event['_embedded']:
                     venue = event['_embedded']['venues'][0]
                     venue_name = venue.get('name', 'Venue name not available')
+                    city = venue.get('city', {}).get('name', 'City not available')
+                    country = venue.get('country', {}).get('name', 'Country not available')
 
+                # Price range
+                price_range = 'Price not available'
+                if 'priceRanges' in event:
+                    prices = event['priceRanges'][0]
+                    min_price = prices.get('min', 'N/A')
+                    max_price = prices.get('max', 'N/A')
+                    currency = prices.get('currency', '')
+                    price_range = f"{min_price} - {max_price} {currency}"
+
+                # Ticketmaster URL
+                ticket_url = event.get('url', '#')
+
+                # Add event information to the list
                 event_info = {
                     'name': event_name,
                     'date': event_date,
-                    'venue': venue_name
+                    'venue': venue_name,
+                    'city': city,
+                    'country': country,
+                    'price': price_range,
+                    'url': ticket_url
                 }
                 events.append(event_info)
         else:
             print(f"No events found for {artist_name}. Response: {response.json()}")
     else:
         print(f"Ticketmaster API request failed for artist {artist_name} with status code {response.status_code}")
+
+    return events
+
+def search_eventbrite_events(artist_name):
+    """Search for upcoming events on Eventbrite for a given artist name."""
+    url = 'https://www.eventbriteapi.com/v3/events/search/'
+    headers = {
+        'Authorization': f'Bearer {eventbrite_private_token}'
+    }
+    params = {
+        'q': artist_name,
+        'categories': '103',  # Music category in Eventbrite
+        'sort_by': 'date',
+        'page_size': 20
+    }
+
+    response = requests.get(url, headers=headers, params=params)
+    events = []
+    if response.status_code == 200:
+        data = response.json()
+        if 'events' in data:
+            for event in data['events']:
+                # Event details
+                event_name = event.get('name', {}).get('text', 'Event name not available')
+                event_date = event.get('start', {}).get('local', 'Date not available')
+
+                # Venue details
+                venue = event.get('venue', {})
+                city = venue.get('address', {}).get('city', 'City not available')
+                country = venue.get('address', {}).get('country', 'Country not available')
+
+                # Eventbrite URL
+                event_url = event.get('url', '#')
+
+                # Add event information to the list
+                event_info = {
+                    'name': event_name,
+                    'date': event_date,
+                    'city': city,
+                    'country': country,
+                    'url': event_url
+                }
+                events.append(event_info)
+        else:
+            print(f"No events found for {artist_name} on Eventbrite. Response: {data}")
+    else:
+        print(f"Eventbrite API request failed for {artist_name} with status code {response.status_code}")
 
     return events
 
@@ -100,9 +173,9 @@ def get_playlists():
 
 @app.route('/playlist_tracks')
 def playlist_tracks():
-    playlist_id = request.args.get('playlist_id')  #Get the 'playlist_id' from the URL
+    playlist_id = request.args.get('playlist_id')
     if not playlist_id:
-        return "No playlist ID provided", 400   #If 'playlist_id' is missing, return an error
+        return "No playlist ID provided", 400
     
     if not sp_oauth.validate_token(cache_handler.get_cached_token()):
         auth_url = sp_oauth.get_authorize_url()
@@ -113,34 +186,66 @@ def playlist_tracks():
     except Exception as e:
         return f"Error fetching playlist tracks: {e}", 400
     
-    artists = []                                                           # CHATGPT   makes an empty list called artists
-    for item in playlist_data[ 'items']:                                   # CHATGPT   Loops through each item in the 'items' list from 'playlist_data' which represents tracks. 'Items' is an attribute given in the SpotifyAPI documentation
-        track = item['track']                                              # CHATGPT   Extracts the 'track' dictionary from each item, which contains info about the track. 'Track' is an attribute given in the SpotifyAPI documentation
-        track_artists = [artists['name'] for artists in track ['artists']] # CHATGPT   Extracts the names of the artists for each track and stores them in a list called track_artists. Each 'track['artists']' entry is an artists involved in a  track
-        artists.extend(track_artists)                                      # CHATGPT   Extends the artists list with the names of the artists in track_artists
-                                                                           # CHATGPT
-    unique_artists = set(artists)                                          # CHATGPT   Convert 'artists' to a set, 'unique_artists', as sets do not allow duplicate entries
-    #artists_html = '<br>'.join(unique_artists)                             # CHATGPT   Formatting
+    # Gather unique artists
+    artists = []
+    for item in playlist_data['items']:
+        track = item['track']
+        track_artists = [artist['name'] for artist in track['artists']]
+        artists.extend(track_artists)
     
-    # HTML for displaying artists and their events. Those with no upcoming events appear at the bottom
-    artist_events = []
-    no_event_artists = []
+    unique_artists = set(artists)
+    
+    # HTML for Ticketmaster results
+    ticketmaster_events = []
     for artist in unique_artists:
         events = search_ticketmaster_events(artist)
         if events:
             event_html = "".join([
-                f"<li>{event['name']} - {event['date']} at {event['venue']}</li>" for event in events
+                f"""
+                <li>
+                    <strong>{event['name']}</strong><br>
+                    Date: {event['date']}<br>
+                    Venue: {event['venue']}, {event['city']}, {event['country']}<br>
+                    Price: {event['price']}<br>
+                    <a href="{event['url']}" target="_blank">Buy Tickets</a>
+                </li>
+                """ for event in events
             ])
-            artist_events.append(f"<h4>{artist}</h4><ul>{event_html}</ul>")
-        else:
-            no_event_artists.append(f"<h4>{artist}</h4><ul><li> No upcoming events found</li></ul>")
+            ticketmaster_events.append(f"<h4>{artist}</h4><ul>{event_html}</ul>")
 
-    artist_events_html = "".join(artist_events + no_event_artists)
+    ticketmaster_html = "".join(ticketmaster_events)
 
+    # HTML for Eventbrite results
+    eventbrite_events = []
+    for artist in unique_artists:
+        events = search_eventbrite_events(artist)
+        if events:
+            event_html = "".join([
+                f"""
+                <li>
+                    <strong>{event['name']}</strong><br>
+                    Date: {event['date']}<br>
+                    Location: {event['city']}, {event['country']}<br>
+                    <a href="{event['url']}" target="_blank">Buy Tickets</a>
+                </li>
+                """ for event in events
+            ])
+            eventbrite_events.append(f"<h4>{artist}</h4><ul>{event_html}</ul>")
+
+    eventbrite_html = "".join(eventbrite_events)
+
+    # Return HTML with both boxes side by side
     return f"""
         <h3>Artists in Playlist (ID: {playlist_id}):</h3>
-        <div style="border: 1px solid #ccc; padding: 15px; width: 50%; height: 33vh; overflow-y: auto; margin: 0 auto;">
-            {artist_events_html}
+        <div style="display: flex; justify-content: space-between; width: 100%; height: 100vh;">
+            <div style="border: 1px solid #ccc; padding: 15px; width: 33%; height: 100vh; overflow-y: auto;">
+                <h3>Ticketmaster Results</h3>
+                {ticketmaster_html}
+            </div>
+            <div style="border: 1px solid #ccc; padding: 15px; width: 33%; height: 100vh; overflow-y: auto;">
+                <h3>Eventbrite Results</h3>
+                {eventbrite_html}
+            </div>
         </div>
     """
         #artist_events_html += f"<h4>{artist}</h4><ul>"
