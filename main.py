@@ -18,10 +18,6 @@ redirect_uri = 'http://localhost:5000/callback'
 spotify_scope = 'playlist-read-private'#This was gotten from a list of available scopes on the Spotify Documentation webpage, this specific scope gives access to read the users private playlists
 ticketmaster_consumer_key = '8kN3GmP1POuzUiGv2LrzBByA9dPGuom2'
 ticketmaster_consumer_secret = '6ZEAtoBunKhyZmZa'
-eventbrite_API_key = 'H464SLKPHWW6RPRVZT'
-eventbrite_client_secret = 'S44M2F4IH3FVI35WPKTM7VZ2VVMHA7ZDAARYAUU45HGSMZQR43'
-eventbrite_private_token = 'GZB6BO6M2OPBM2SZBBYC'
-eventbrite_public_token = 'WA7SGX6ZADW3F7N6RYOW'
 
 cache_handler = FlaskSessionCacheHandler(session)
 sp_oauth = SpotifyOAuth(
@@ -91,53 +87,6 @@ def search_ticketmaster_events(artist_name):
             print(f"No events found for {artist_name}. Response: {response.json()}")
     else:
         print(f"Ticketmaster API request failed for artist {artist_name} with status code {response.status_code}")
-
-    return events
-
-def search_eventbrite_events(artist_name):
-    """Search for upcoming events on Eventbrite for a given artist name."""
-    url = 'https://www.eventbriteapi.com/v3/events/search/'
-    headers = {
-        'Authorization': f'Bearer {eventbrite_private_token}'
-    }
-    params = {
-        'q': f"{artist_name} concert",  # Add "concert" to broaden the search
-        'sort_by': 'date',
-        'page_size': 20
-    }
-
-    response = requests.get(url, headers=headers, params=params)
-    print(f"Eventbrite API response for {artist_name}: {response.status_code} - {response.text}")
-    events = []
-    if response.status_code == 200:
-        data = response.json()
-        if 'events' in data and data['events']:
-            for event in data['events']:
-                # Event details
-                event_name = event.get('name', {}).get('text', 'Event name not available')
-                event_date = event.get('start', {}).get('local', 'Date not available')
-
-                # Venue details
-                venue = event.get('venue', {})
-                city = venue.get('address', {}).get('city', 'City not available')
-                country = venue.get('address', {}).get('country', 'Country not available')
-
-                # Eventbrite URL
-                event_url = event.get('url', '#')
-
-                # Add event information to the list
-                event_info = {
-                    'name': event_name,
-                    'date': event_date,
-                    'city': city,
-                    'country': country,
-                    'url': event_url
-                }
-                events.append(event_info)
-        else:
-            print(f"No events found for {artist_name} on Eventbrite. Response: {data}")
-    else:
-        print(f"Eventbrite API request failed for {artist_name} with status code {response.status_code}")
 
     return events
 
@@ -215,25 +164,6 @@ def playlist_tracks():
 
     ticketmaster_html = "".join(ticketmaster_events)
 
-    # HTML for Eventbrite results
-    eventbrite_events = []
-    for artist in unique_artists:
-        events = search_eventbrite_events(artist)
-        if events:
-            event_html = "".join([
-                f"""
-                <li>
-                    <strong>{event['name']}</strong><br>
-                    Date: {event['date']}<br>
-                    Location: {event['city']}, {event['country']}<br>
-                    <a href="{event['url']}" target="_blank">Buy Tickets</a>
-                </li>
-                """ for event in events
-            ])
-            eventbrite_events.append(f"<h4>{artist}</h4><ul>{event_html}</ul>")
-
-    eventbrite_html = "".join(eventbrite_events)
-
     dropdown_menu = "".join([f'<option value="{artist}">{artist}</option>' for artist in unique_artists])
 
     # Return HTML with both boxes side by side
@@ -249,10 +179,6 @@ def playlist_tracks():
             <div style="border: 1px solid #ccc; padding: 15px; width: 33%; height: 100vh; overflow-y: auto;">
                 <h3>Ticketmaster Results</h3>
                 {ticketmaster_html}
-            </div>
-            <div style="border: 1px solid #ccc; padding: 15px; width: 33%; height: 100vh; overflow-y: auto;">
-                <h3>Eventbrite Results</h3>
-                {eventbrite_html}
             </div>
         </div>
     """
