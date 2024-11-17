@@ -144,11 +144,17 @@ def playlist_tracks():
     
     unique_artists = sorted(set(artists))
     
-    # HTML for Ticketmaster results
+    # Separate artists with and without events
+    artists_with_events = []
+    artists_without_events = []
     ticketmaster_events = []
+
     for artist in unique_artists:
         events = search_ticketmaster_events(artist)
         if events:
+            # Add to artists with events
+            artists_with_events.append((artist, events))
+            # Generate HTML for the artist with events
             event_html = "".join([
                 f"""
                 <li>
@@ -161,15 +167,53 @@ def playlist_tracks():
                 """ for event in events
             ])
             ticketmaster_events.append(f"<h4>{artist}</h4><ul>{event_html}</ul>")
+        else:
+            # Add to artists without events
+            artists_without_events.append(artist)
+            ticketmaster_events.append(f"<h4>{artist}</h4><p>No concert data available.</p>")
+    
+    # Sort the lists alphabetically
+    artists_with_events.sort(key=lambda x: x[0])
+    artists_without_events.sort()
+    
+    # Generate the dropdown menu
+    dropdown_menu = "".join([f'<option value="{artist}">{artist}</option>' for artist in artists_with_events + artists_without_events])
+    
+     # Generate HTML for Ticketmaster results
+    ticketmaster_html_with_events = "".join([
+        f"""
+        <h4>{artist}</h4>
+        <ul>
+            {''.join([
+                f"""
+                <li>
+                    <strong>{event['name']}</strong><br>
+                    Date: {event['date']}<br>
+                    Venue: {event['venue']}, {event['city']}, {event['country']}<br>
+                    Price: {event['price']}<br>
+                    <a href="{event['url']}" target="_blank">Buy Tickets</a>
+                </li>
+                """ for event in events
+            ])}
+        </ul>
+        """ for artist, events in artists_with_events
+    ])
 
-    ticketmaster_html = "".join(ticketmaster_events)
+    ticketmaster_html_without_events = "".join([
+        f"<h4>{artist}</h4><p>No concert data available.</p>"
+        for artist in artists_without_events
+    ])
 
+    # Combine the HTML for Ticketmaster results
+    ticketmaster_html = ticketmaster_html_with_events + ticketmaster_html_without_events
+    
+    # Generate the dropdown menu
     dropdown_menu = "".join([f'<option value="{artist}">{artist}</option>' for artist in unique_artists])
 
-    # Return HTML with both boxes side by side
+    # Return the final HTML
     return f"""
         <h3>Artists in Playlist (ID: {playlist_id}):</h3>
-          <div>
+        <div>
             <select>
                 <option value="" disabled selected>Who's being searched for?</option>
                 {dropdown_menu}
@@ -182,15 +226,6 @@ def playlist_tracks():
             </div>
         </div>
     """
-        #artist_events_html += f"<h4>{artist}</h4><ul>"
-        #if events:
-        #    for event in events:
-        #        artist_events_html += f"<li>{event['name']} - {event['date']} at {event['venue']}</li>"
-        #else:
-        #    artist_events_html += "<li>No upcoming events found</li>"
-        #artist_events_html += "</ul>"
-    # return f"<h3>Artists in Playlist (ID: {playlist_id}):</h3><br>{artist_events_html}" 
-
 @app.route('/logout')
 def logout():
     session.clear()
