@@ -191,9 +191,15 @@ def playlist_tracks():
                     Date: {event['date']}<br>
                     Venue: {event['venue']}, {event['city']}, {event['country']}<br>
                     Price: {event['price']}<br>
-                    <a href="{event['url']}" target="_blank">Buy Tickets</a>
+                    <a href="{event['url']}" target="_blank">Buy Tickets</a><br>
+                    <form action="/find_travel_accommodation" method="post" style="display:inline;">
+                        <input type="hidden" name="event_date" value="{event['date']}">
+                        <input type="hidden" name="event_city" value="{event['city']}">
+                        <input type="hidden" name="event_country" value="{event['country']}">
+                        <button type="submit">Find Travel & Accommodation</button>
+                    </form>
                 </li>
-                """ for event in events
+            """ for event in events
             ])}
         </ul>
         """ for artist, events in artists_with_events
@@ -210,9 +216,15 @@ def playlist_tracks():
     # Generate the dropdown menu
     dropdown_menu = "".join([f'<option value="{artist}">{artist}</option>' for artist in unique_artists])
 
+    try: #retrieves the playlist name from playlist_details to display the playlist name at the top of the page instead of playlist ID
+        playlist_details = sp.playlist(playlist_id) 
+        playlist_name = playlist_details['name']
+    except Exception as e:
+        playlist_name = "Unknown Playlist"
+
     # Return the final HTML
     return f"""
-        <h3>Artists in Playlist (ID: {playlist_id}):</h3>
+        <h3>Artists in Playlist: {playlist_name}</h3>
         <div>
             <select>
                 <option value="" disabled selected>Who's being searched for?</option>
@@ -226,6 +238,19 @@ def playlist_tracks():
             </div>
         </div>
     """
+
+#future travel and accommodation call
+#@app.route('/find_travel_accomodation', methods=['POST'])
+#def find_travel_accomodation():
+#    #Get event details from the form
+#    event_date = request.form.get('event_date')
+#    event_city = request.form.get('event_city')
+#    event_country = request.form.get('event_country')
+
+#    #Call travel API
+#    travel_options = search_travel_options(event_date, event_city, event_country)
+#    accomodation_options = search_accomodation_options(event_date, event_city, event_country)
+
 @app.route('/logout')
 def logout():
     session.clear()
