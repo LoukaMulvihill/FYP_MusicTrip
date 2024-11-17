@@ -101,17 +101,17 @@ def search_eventbrite_events(artist_name):
         'Authorization': f'Bearer {eventbrite_private_token}'
     }
     params = {
-        'q': artist_name,
-        'categories': '103',  # Music category in Eventbrite
+        'q': f"{artist_name} concert",  # Add "concert" to broaden the search
         'sort_by': 'date',
         'page_size': 20
     }
 
     response = requests.get(url, headers=headers, params=params)
+    print(f"Eventbrite API response for {artist_name}: {response.status_code} - {response.text}")
     events = []
     if response.status_code == 200:
         data = response.json()
-        if 'events' in data:
+        if 'events' in data and data['events']:
             for event in data['events']:
                 # Event details
                 event_name = event.get('name', {}).get('text', 'Event name not available')
@@ -193,7 +193,7 @@ def playlist_tracks():
         track_artists = [artist['name'] for artist in track['artists']]
         artists.extend(track_artists)
     
-    unique_artists = set(artists)
+    unique_artists = sorted(set(artists))
     
     # HTML for Ticketmaster results
     ticketmaster_events = []
@@ -234,9 +234,17 @@ def playlist_tracks():
 
     eventbrite_html = "".join(eventbrite_events)
 
+    dropdown_menu = "".join([f'<option value="{artist}">{artist}</option>' for artist in unique_artists])
+
     # Return HTML with both boxes side by side
     return f"""
         <h3>Artists in Playlist (ID: {playlist_id}):</h3>
+          <div>
+            <select>
+                <option value="" disabled selected>Who's being searched for?</option>
+                {dropdown_menu}
+            </select>
+        </div>
         <div style="display: flex; justify-content: space-between; width: 100%; height: 100vh;">
             <div style="border: 1px solid #ccc; padding: 15px; width: 33%; height: 100vh; overflow-y: auto;">
                 <h3>Ticketmaster Results</h3>
