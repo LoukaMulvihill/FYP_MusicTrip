@@ -18,6 +18,8 @@ redirect_uri = 'http://localhost:5000/callback'
 spotify_scope = 'playlist-read-private'#This was gotten from a list of available scopes on the Spotify Documentation webpage, this specific scope gives access to read the users private playlists
 ticketmaster_consumer_key = '8kN3GmP1POuzUiGv2LrzBByA9dPGuom2'
 ticketmaster_consumer_secret = '6ZEAtoBunKhyZmZa'
+seatgeek_client_secret = 'a3a744440462a63e16c046e6ffc8df67366397b5f16cb698a534ebaff889f7bc'
+seatgeek_client_id = 'NDY5NDg0MTN8MTczMTk0MzczNC4wMzA4NDI'
 
 cache_handler = FlaskSessionCacheHandler(session)
 sp_oauth = SpotifyOAuth(
@@ -30,7 +32,7 @@ sp_oauth = SpotifyOAuth(
 ) #This is the authentication manager, essentially how we will authenticate with the Spotify webAPI
 sp = Spotify(auth_manager=sp_oauth)
 
-def search_ticketmaster_events(artist_name):
+def search_ticketmaster_events(artist_name): #Function to search for events in ticketmaster based on artist name
     """Search for upcoming events on Ticketmaster for a given artist name."""
     url = 'https://app.ticketmaster.com/discovery/v2/events'
     params = {
@@ -44,7 +46,7 @@ def search_ticketmaster_events(artist_name):
     events = []
     if response.status_code == 200:
         data = response.json()
-        if '_embedded' in data and 'events' in data['_embedded']:
+        if '_embedded' in data and 'events' in data['_embedded']: #checks if there are any events in the response
             for event in data['_embedded']['events']:
                 # Safely retrieve event details
                 event_name = event.get('name', 'Event name not available')
@@ -227,7 +229,7 @@ def playlist_tracks():
         <h3>Artists in Playlist: {playlist_name}</h3>
         <div>
             <select>
-                <option value="" disabled selected>Who's being searched for?</option>
+                <option value="" disabled selected>View list of artists</option>
                 {dropdown_menu}
             </select>
         </div>
