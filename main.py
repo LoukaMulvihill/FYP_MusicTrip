@@ -18,8 +18,7 @@ redirect_uri = 'http://localhost:5000/callback'
 spotify_scope = 'playlist-read-private'#This was gotten from a list of available scopes on the Spotify Documentation webpage, this specific scope gives access to read the users private playlists
 ticketmaster_consumer_key = '8kN3GmP1POuzUiGv2LrzBByA9dPGuom2'
 ticketmaster_consumer_secret = '6ZEAtoBunKhyZmZa'
-seatgeek_client_secret = 'a3a744440462a63e16c046e6ffc8df67366397b5f16cb698a534ebaff889f7bc'
-seatgeek_client_id = 'NDY5NDg0MTN8MTczMTk0MzczNC4wMzA4NDI'
+
 
 cache_handler = FlaskSessionCacheHandler(session)
 sp_oauth = SpotifyOAuth(
