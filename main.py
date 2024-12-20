@@ -2,8 +2,8 @@
 #Most code here is from https://www.youtube.com/watch?v=2if5xSaZJlg
 
 import os
-from flask import Flask, request, redirect, session, url_for #Imports flask library. Also imports the session. The session is the instance of the server that will store data while the user is using the app
-from API import setup_spotify_auth, search_ticketmaster_events
+from flask import Flask, request, redirect, session, url_for, render_template #Imports flask library. Also imports the session. The session is the instance of the server that will store data while the user is using the app
+from API import setup_spotify_auth, search_ticketmaster_events, get_return_route
 
 app = Flask(__name__) #Creates the flask app and stores it in the app variable
 app.config['SECRET_KEY'] = os.urandom(64) #This creates a secret encryption key for flask to access the session data
@@ -112,11 +112,12 @@ def playlist_tracks():
                     Venue: {event['venue']}, {event['city']}, {event['country']}<br>
                     Price: {event['price']}<br>
                     <a href="{event['url']}" target="_blank">Buy Tickets</a><br>
-                    <form action="/find_travel_accommodation" method="post" style="display:inline;">
+                    <form action="/find_return_route" method="post" style="display:inline;">
                         <input type="hidden" name="event_date" value="{event['date']}">
                         <input type="hidden" name="event_city" value="{event['city']}">
                         <input type="hidden" name="event_country" value="{event['country']}">
-                        <button type="submit">Find Travel & Accommodation</button>
+                        <input type="hidden" name="event_venue" value="{event['venue']}">
+                        <button type="submit">Find Travel Options</button>
                     </form>
                 </li>
             """ for event in events
@@ -160,16 +161,47 @@ def playlist_tracks():
     """
 
 #future travel and accommodation call
-#@app.route('/find_travel_accomodation', methods=['POST'])
-#def find_travel_accomodation():
-#    #Get event details from the form
-#    event_date = request.form.get('event_date')
-#    event_city = request.form.get('event_city')
-#    event_country = request.form.get('event_country')
+@app.route('/find_return_route', methods=['POST'])
+def find_return_route():
+    #Get event details from the form
+    event_date = request.form.get('event_date')
+    event_city = request.form.get('event_city')
+    event_country = request.form.get('event_country')
+    event_venue = request.form.get('event_venue')
 
-#    #Call travel API
-#    travel_options = search_travel_options(event_date, event_city, event_country)
-#    accomodation_options = search_accomodation_options(event_date, event_city, event_country)
+    #combine address
+    event_location = f"{event_venue}, {event_city}, {event_country}"
+
+    # Pass data to the frontend
+    return render_template(
+        'map.html',
+        source_address="26 ard na gréine, Dingle, County Kerry",  # Default source
+        destination_address=event_location,
+    )
+
+
+    #Call travel API
+  #  route = get_return_route(event_location, event_date)
+#
+ #   if not route:
+  #      return "Could not find a route", 400
+    
+    #new page with route details
+   # return f"""
+    #    <h3>Travel Options</h3>
+     #   <h4>To Event:</h4>
+     #   <p>Duration: {route['to_event']['duration']}</p>
+    #    <p>Distance: {route['to_event']['distance']}</p>
+    #    <ol>{"".join(f"<li>{step}</li>" for step in route['to_event']['steps'])}</ol>
+
+#        <h4>Return Trip:</h4>
+ #       <p>Duration: {route['to_source']['duration']}</p>
+  #      <p>Distance: {route['to_source']['distance']}</p>
+   #     <ol>{"".join(f"<li>{step}</li>" for step in route['to_source']['steps'])}</ol>
+
+    #    <a href="/">Go Back</a>
+    #"""
+
 
 @app.route('/logout')
 def logout():

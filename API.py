@@ -1,5 +1,8 @@
 import os
 import requests
+import googlemaps
+import time
+from datetime import datetime
 from spotipy import Spotify #These three are imports to set up authorisation
 from spotipy.oauth2 import SpotifyOAuth
 from spotipy.cache_handler import FlaskSessionCacheHandler
@@ -10,6 +13,16 @@ redirect_uri = 'http://localhost:5000/callback'
 spotify_scope = 'playlist-read-private'#This was gotten from a list of available scopes on the Spotify Documentation webpage, this specific scope gives access to read the users private playlists
 ticketmaster_consumer_key = '8kN3GmP1POuzUiGv2LrzBByA9dPGuom2'
 ticketmaster_consumer_secret = '6ZEAtoBunKhyZmZa'
+googlemaps_key = 'AIzaSyBFF1AW7xYOruxjBDDjoPUOyd2YqZDnK00'
+googlemaps_secret = 'c-nXPtTIBSJ65YkWy4LwOJuRtvk='
+
+map_client = googlemaps.Client(key=googlemaps_key) 
+
+source_address = '26 ard na gréine, Dingle, County Kerry'
+destination_address = '7 Crosses Green, Cork, County Cork'
+
+map_client.directions(source_address, destination_address)
+
 
 def setup_spotify_auth(session):
     cache_handler = FlaskSessionCacheHandler(session)
@@ -83,3 +96,55 @@ def search_ticketmaster_events(artist_name): #Function to search for events in t
         print(f"Ticketmaster API request failed for artist {artist_name} with status code {response.status_code}")
 
     return events
+
+#Google Maps Directions
+def get_return_route(event_location, event_date):
+    #Calculate the quickets return route from the predetermined source address to the event location
+
+    try:
+        # Convert event date to timestamp (assuming event_date is in "YYYY-MM-DD" format)
+        event_datetime = datetime.strptime(event_date, "%Y-%m-%d")
+        departure_time = int(time.mktime(event_datetime.timetuple()))  # Convert to timestamp
+
+        #get directions from source to event location
+        directions_to_event = map_client.directions(
+            source_address,
+            event_location,
+            mode="transit", #could be walking, driving
+            departure_time = departure_time #use event date
+        )
+        if not directions_to_event:
+            raise Exception("No directions found to the event location.")
+        
+        #Get directions back to source
+        directions_to_source = map_client.directions(
+            event_location,
+            source_address,
+            mode='transit',
+            departure_time=departure_time
+        )
+        if not directions_to_event:
+            raise Exception("No directions found back to the source.")
+        
+        #Extract relevant details
+        route_to_event = {
+            'duration' : directions_to_event[0]['legs'][0]['duration']['text'],
+            'distance' : directions_to_event[0]['legs'][0]['duration']['text'],
+            'steps' : [step['html_instructions'] for step in directions_to_event[0]['legs'][0]['steps']]
+        }
+        route_to_source = {
+            'duration' : directions_to_source[0]['legs'][0]['duration']['text'],
+            'distance' : directions_to_source[0]['legs'][0]['duration']['text'],
+            'steps' : [step['html_instructions'] for step in directions_to_source[0]['legs'][0]['steps']]
+        }
+
+        #return combined route information
+        return {
+            'to_event': route_to_event,
+            'to_source' : route_to_source
+        }
+    
+    except Exception as e:
+        print(f"Error fetching directions: {e}")
+        return None
+
